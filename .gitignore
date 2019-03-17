@@ -6,6 +6,9 @@
 db/
 htmlcov/
 npm-debug.log
+.idea/
+data/
+venv/
 
 # cache, compiled & downloaded files
 *.pyc

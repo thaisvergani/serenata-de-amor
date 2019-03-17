@@ -32,6 +32,7 @@ urlpatterns = [
              'jarbas.chamber_of_deputies.urls',
              namespace='chamber_of_deputies')),
     path('healthcheck/', healthcheck, name='healthcheck'),
+    path('dataviz/', include('jarbas.dataviz.urls')),
 ]
 
 if settings.LOG_LEVEL == 'debug':

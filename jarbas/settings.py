@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'jarbas.chamber_of_deputies.app.ChamberOfDeputiesConfig',
     'jarbas.layers',
     'jarbas.dashboard',
+    'jarbas.dataviz',
     'django.contrib.admin',
     'django_extensions',
     'debug_toolbar',

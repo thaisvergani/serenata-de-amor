@@ -101,9 +101,15 @@ WSGI_APPLICATION = 'jarbas.wsgi.application'
 
 default_db = 'sqlite:///' + os.path.join(BASE_DIR, 'db.sqlite3')
 DATABASES = {
-    'default': config('DATABASE_URL', default=default_db, cast=parse)
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'jarbas',
+        'USER': 'jarbas',
+        'PASSWORD': 'mysecretpassword',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
+    }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/1.10/ref/settings/#auth-password-validators

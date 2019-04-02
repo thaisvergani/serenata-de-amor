@@ -178,7 +178,7 @@ Copy `contrib/.env.sample` as `.env` in the project's root folder and adjust you
 ##### Twitter settings
 
 * `TWITTER_CONSUMER_KEY` (_str_) Twitter API key
-* `TWITTER_CONSUMER_SECRET` (_str_) Twitter API secret
+* `TWITTER_CONSUMER_SECRET` (_str_) Twitter API secretGET 
 * `TWITTER_ACCESS_TOKEN` (_str_) Twitter access token
 * `TWITTER_ACCESS_SECRET` (_str_) Twitter access token secret
 

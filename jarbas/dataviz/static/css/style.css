@@ -1,0 +1,21 @@
+.line {
+    fill: none;
+    stroke:#5a44a0;
+    stroke-width: 3;
+}
+
+.overlay {
+  fill: none;
+  pointer-events: all;
+}
+
+/* Style the dots by assigning a fill and stroke */
+.dot {
+    fill: #5a44a0;
+    stroke: #fff;
+}
+
+.focus circle {
+  fill: none;
+  stroke: steelblue;
+}

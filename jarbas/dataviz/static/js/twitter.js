@@ -1,97 +1,184 @@
 var svg = d3.select('#twitter-data-url'),
+    chart_container = d3.select("#chart"),
     tweets_url = svg.attr('data-url');
 
 d3.json(tweets_url, function (error, data) {
+
     if (error) throw error;
 
-    // 2. Use the margin convention practice
-    var margin = {top: 50, right: 100, bottom: 50, left: 100}
-        , width = window.innerWidth - margin.left - margin.right // Use the window's width
-        , height = 500 - margin.top - margin.bottom; // Use the window's height
+    var width = chart_container.node().getBoundingClientRect().width - 50;
+    var height = 300;
+    var margin = 50;
+    var duration = 250;
 
-    // parse and sort data
-    data.forEach(function (d) {
+    var lineOpacity = "0.25";
+    var lineOpacityHover = "0.85";
+    var otherLinesOpacityHover = "0.1";
+    var lineStroke = "1.5px";
+    var lineStrokeHover = "2.5px";
 
-        d.issue_date = Date.parse(d.issue_date);
-        d.total_net_value = Number(d.total_net_value);
-    });
+    var circleOpacity = '0.85';
+    var circleOpacityOnLineHover = "0.25"
+    var circleRadius = 3;
+    var circleRadiusHover = 6;
 
+
+    /* Format Data */
     function sortByDateAscending(a, b) {
-        return a.issue_date - b.issue_date;
+        return a.date - b.date;
     }
 
-    data = data.sort(sortByDateAscending);
+    data.forEach(function (d) {
 
-    // define chart domain
-    var x = d3.scaleTime().range([0, width]);
-    var y = d3.scaleLinear().range([height, 0]);
-    x.domain([
-        d3.min(data, function (d) {
-            return d.issue_date;
-        }),
-        d3.max(data, function (d) {
-            return d.issue_date;
-        })]);
+        d.values.forEach(function (d) {
+            d.date = Date.parse(d.initial_date);
+            d.price = +d.mean_per_day;
+        });
+
+        d.values =  d.values.sort(sortByDateAscending);
+
+    });
+
+    /* Scale */
+    var xScale = d3.scaleTime()
+        .domain(d3.extent(data[0].values, d => d.date))
+        .range([0, width - margin]);
+
+    var yScale = d3.scaleLinear()
+        .domain([0, d3.max(data[0].values, d => d.price)])
+        .range([height - margin, 0]);
+
+    var color = d3.scaleOrdinal(d3.schemeCategory10);
+
+    /* Add SVG */
+    var svg = chart_container.append("svg")
+        .attr("width", (width + margin) + "px")
+        .attr("height", (height + margin) + "px")
+        .append('g')
+        .attr("transform", `translate(${margin}, ${margin})`)
+        .attr("width", '100%')
+        .attr('preserveAspectRatio','xMinYMin');
 
 
-    y.domain([
-        d3.min(data, function (d) {
-            return d.total_net_value;
-        }),
-        d3.max(data, function (d) {
-            return d.total_net_value;
-        })]);
-
+    /* Add line into SVG */
     var line = d3.line()
-        .x(function (d) {
-            return x(d.issue_date);
+        .x(d => xScale(d.date))
+        .y(d => yScale(d.price));
+
+    let lines = svg.append('g')
+        .attr('class', 'lines');
+
+    lines.selectAll('.line-group')
+        .data(data).enter()
+        .append('g')
+        .attr('class', 'line-group')
+        .on("mouseover", function (d, i) {
+            svg.append("text")
+                .attr("class", "title-text")
+                .style("fill", color(i))
+                .text(d.name)
+                .attr("text-anchor", "middle")
+                .attr("x", (width - margin) / 2)
+                .attr("y", 5);
         })
-        .y(function (d) {
-            return y(d.total_net_value);
+        .on("mouseout", function (d) {
+            svg.select(".title-text").remove();
         })
-        .curve(d3.curveMonotoneX);
+        .append('path')
+        .attr('class', 'line')
+        .attr('d', d => line(d.values))
+        .style('stroke', (d, i) => color(i))
+        .style('opacity', lineOpacity)
+        .on("mouseover", function (d) {
+            d3.selectAll('.line')
+                .style('opacity', otherLinesOpacityHover);
+            d3.selectAll('.circle')
+                .style('opacity', circleOpacityOnLineHover);
+            d3.select(this)
+                .style('opacity', lineOpacityHover)
+                .style("stroke-width", lineStrokeHover)
+                .style("cursor", "pointer");
+        })
+        .on("mouseout", function (d) {
+            d3.selectAll(".line")
+                .style('opacity', lineOpacity);
+            d3.selectAll('.circle')
+                .style('opacity', circleOpacity);
+            d3.select(this)
+                .style("stroke-width", lineStroke)
+                .style("cursor", "none");
+        });
 
 
-// 1. Add the SVG to the page and employ #2
-    var svg = d3.select("body").append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
+    /* Add circles in the line */
+    lines.selectAll("circle-group")
+        .data(data).enter()
         .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        .style("fill", (d, i) => color(i))
+        .selectAll("circle")
+        .data(d => d.values).enter()
+        .append("g")
+        .attr("class", "circle")
+        .on("mouseover", function (d) {
+            var price = d.price;
+            price = price.toLocaleString('pt-br',{style: 'currency', currency: 'BRL'});
+            var node =  d3.select(this).node().getBBox();
 
-// 3. Call the x axis in a group tag
+            d3.select(this)
+            .style("cursor", "pointer")
+            .append("text")
+            .text(price)
+            .style("opacity", 1)
+            .attr("x", d => xScale(d.date) + 5)
+            .attr("y", d => yScale(d.price) - 10);
+        })
+        .on("mouseout", function (d) {
+            // tooltip.style("opacity", 0);
+
+        })
+        .append("circle")
+        .attr("cx", d => xScale(d.date))
+        .attr("cy", d => yScale(d.price))
+        .attr("r", circleRadius)
+        .style('opacity', circleOpacity)
+        .style("fill", function(d, i){
+
+            if (d.status != "0"){
+                '#ff1533'
+            }else{
+                color(i);
+            }
+
+        } )
+        .on("mouseover", function (d) {
+            d3.select(this)
+                .transition()
+                .duration(duration)
+                .attr("r", circleRadiusHover);
+        })
+        .on("mouseout", function (d) {
+            d3.select(this)
+                .transition()
+                .duration(duration)
+                .attr("r", circleRadius);
+        });
+
+
+    /* Add Axis into SVG */
+    var xAxis = d3.axisBottom(xScale).ticks(5);
+    var yAxis = d3.axisLeft(yScale).ticks(5);
+
     svg.append("g")
         .attr("class", "x axis")
-        .attr("transform", "translate(0," + height + ")")
-        .call(d3.axisBottom(x)); // Create an axis component with d3.axisBottom
+        .attr("transform", `translate(0, ${height - margin})`)
+        .call(xAxis);
 
-// 4. Call the y axis in a group tag
     svg.append("g")
         .attr("class", "y axis")
-        .call(d3.axisLeft(y)); // Create an axis component with d3.axisLeft
-
-// 9. Append the path, bind the data, and call the line generator
-    svg.append("path")
-        .datum(data) // 10. Binds data to the line
-        .attr("class", "line") // Assign a class for styling
-        .attr("d", line); // 11. Calls the line generator
-
-// 12. Appends a circle for each datapoint
-    svg.selectAll(".dot")
-        .data(data)
-        .enter().append("circle") // Uses the enter().append() method
-        .attr("class", "dot") // Assign a class for styling
-        .attr("cx", function (d, i) {
-            return x(i)
-        })
-        .attr("cy", function (d) {
-            return y(d.total_net_value)
-        })
-        .attr("r", 5)
-        .on("mouseover", function (a, b, c) {
-            console.log(a)
-            this.attr('class', 'focus')
-        })
-        .on("mouseout", function () {
-        })
+        .call(yAxis)
+        .append('text')
+        .attr("y", 15)
+        .attr("transform", "rotate(-90)")
+        .attr("fill", "#000")
+        .text("Total values");
 });

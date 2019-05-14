@@ -1,12 +1,12 @@
 .line {
     fill: none;
-    stroke:#5a44a0;
+    stroke: #5a44a0;
     stroke-width: 3;
 }
 
 .overlay {
-  fill: none;
-  pointer-events: all;
+    fill: none;
+    pointer-events: all;
 }
 
 /* Style the dots by assigning a fill and stroke */
@@ -16,6 +16,117 @@
 }
 
 .focus circle {
-  fill: none;
-  stroke: steelblue;
+    fill: none;
+    stroke: steelblue;
+}
+
+html {
+    background: #fff;
+    font-family: Roboto, sans-serif;
+    color: #4b4b4b;
+    font-size: 18px;
+    line-height: 24px;
+}
+
+body {
+    min-width: 320px;
+    min-height: 650px;
+    top: 0;
+    font-weight: 300;
+    letter-spacing: .06rem;
+    line-height: 1.5;
+    position: relative;
+}
+
+.box-content {
+    padding-bottom: 30px;
+    position: relative;
+}
+.box, .box-content {
+    width: calc(100% - 1px);
+    float: left;
+    clear: right;
+    overflow: visible;
+    z-index: 100;
+    margin: 0;
+}
+.column {
+    max-width: 960px;
+    margin: 100px auto 0;
+    padding: 0 16px;
+    position: relative;
+    line-height: 1.5;
+}
+.all-centered, .centered {
+    text-align: center;
+}
+h1, h2, h3, h4,  h6 {
+    font-size: 38px;
+    font-family: Roboto-Light,sans-serif;
+    font-weight: 400;
+}
+h5{
+    font-size: 30px;
+        font-family: Roboto-Light,sans-serif;
+    font-weight: 400;
+}
+.al-left{
+    text-align: left;
+}
+.top-text p {
+    font-size: 18px;
+    line-height: 24px;
+    padding: 0;
+    margin: 0;
+}
+
+.column span{
+    line-height: 35px;
+}
+.select-box {
+    display: inline-block;
+    width: calc(100% - 180px);
+    padding-right: 25px;
+    vertical-align: top;
+    float: right;
+    position: relative;
+    height: 38px;
+    line-height: 30px;
+    box-sizing: border-box;
+    cursor: pointer;
+    border: 1px solid #eeedf4;
+    background-size: 30px auto;
+    overflow: hidden;
+    font-family: Roboto, sans-serif;
+
+}
+
+.select-box select {
+    color: #666;
+    opacity: .99;
+    z-index: 1;
+    width: calc(100% + 50px);
+    padding: 2px 50px 5px 15px;
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+    background-image: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    font-weight: 300;
+    border-radius: 0;
+    font-family: Roboto, sans-serif;
+    position: relative;
+    height: 38px;
+    margin: 0;
+    line-height: 30px;
+    box-sizing: border-box;
+    cursor: pointer;
+        font-size: 18px;
+
+}
+div.tooltip {
+    position: absolute;
+
 }

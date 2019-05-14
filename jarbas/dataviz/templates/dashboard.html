@@ -7,12 +7,60 @@
 
     <title>Dataviz</title>
     <script src="https://d3js.org/d3.v4.min.js"></script>
-
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500" class="next-head">
     <script src="{% static 'js/twitter.js' %}" async></script>
     <link href="{% static 'css/style.css' %}" rel="stylesheet" type="text/css" media="all">
 
 </head>
 <body>
+    <div class="box-content first" id="box1">
+        <div class="column">
+            <div class="centered top-text">
+                <h1>Dataviz</h1>
+                <br/>
+                <br/>
+                <h5 class="al-left">O impacto do controle social na Câmara dos Deputados.</h5>
+                <p class="al-left">Como os Tweets feitos pela
+                    <a href="https://twitter.com/RosieDaSerenata">@RosieDaSerenata</a>
+                    podem impactar os gastos relacionados às refeições dos parlamentares?</p>
+            </div>
+        </div>
+
+        <div class="column">
+
+            <div class="centered" id="intro">
+                <span>Parlamentar:
+
+                </span>
+
+                <div class="select-box">
+                    <select id="filtro-parlamentar">
+                        {% for c in congressperson_list %}
+                           <option value="{{c.congressperson_id}}">
+                               {{c.congressperson_name|title}}
+                           </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="box-content">
+        <div class="column chart" id="chart"></div>
+        <div class="reimbursement-info">
+            <b>Data do Tweet:</b>
+            <span id="tweet-date"></span>
+            <b>Quantidade de Favoritos no Tweet:</b>
+            <span id="tweet-favorites"></span>
+            <b>Valor do Reembolso:</b>
+            <span id="reimbursement-price"></span>
+            <b>Motivo da Suspeita:</b>
+            <span id="suspicious-reason"></span>
+
+        </div>
+    </div>
+
 
 <input type="hidden" id="twitter-data-url" data-url="{% url 'dataviz:tweet_chart' %}"/>
 </body>

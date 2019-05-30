@@ -57,6 +57,10 @@ body {
     position: relative;
     line-height: 1.5;
 }
+.box-content.chart .column{
+   margin: 0px auto 0;
+
+}
 .all-centered, .centered {
     text-align: center;
 }
@@ -129,4 +133,31 @@ h5{
 div.tooltip {
     position: absolute;
 
+}
+
+.reimbursement-info {
+    font-size: 14px;
+        height: 25px;
+
+}
+
+.profile-pic {
+    min-width: 120px;
+    width: 120px;
+    position: relative;
+    float: left;
+    overflow: hidden;
+}
+.profile-pic img{
+    width: 120px;
+    margin: auto;
+  display: block;
+
+}
+.basic-info{
+    min-width: 450px;
+    overflow: hidden;
+}
+.congressperson-info{
+    display:flex;
 }

@@ -13,53 +13,65 @@
 
 </head>
 <body>
-    <div class="box-content first" id="box1">
-        <div class="column">
-            <div class="centered top-text">
-                <h1>Dataviz</h1>
-                <br/>
-                <br/>
-                <h5 class="al-left">O impacto do controle social na Câmara dos Deputados.</h5>
-                <p class="al-left">Como os Tweets feitos pela
-                    <a href="https://twitter.com/RosieDaSerenata">@RosieDaSerenata</a>
-                    podem impactar os gastos relacionados às refeições dos parlamentares?</p>
-            </div>
+<div class="box-content first" id="box1">
+    <div class="column">
+        <div class="centered top-text">
+            <h1>Dataviz</h1>
+            <br/>
+            <br/>
+            <h5 class="al-left">O impacto do controle social na Câmara dos Deputados.</h5>
+            <p class="al-left">Como os Tweets feitos pela
+                <a href="https://twitter.com/RosieDaSerenata">@RosieDaSerenata</a>
+                podem impactar os gastos relacionados às refeições dos parlamentares?</p>
         </div>
+    </div>
 
-        <div class="column">
+    <div class="column">
 
-            <div class="centered" id="intro">
+        <div class="centered" id="intro">
                 <span>Parlamentar:
 
                 </span>
 
-                <div class="select-box">
-                    <select id="filtro-parlamentar">
-                        {% for c in congressperson_list %}
-                           <option value="{{c.congressperson_id}}">
-                               {{c.congressperson_name|title}}
-                           </option>
-                        {% endfor %}
-                    </select>
-                </div>
+            <div class="select-box">
+                <select id="congressperson" data-url="{% url 'dataviz:congressperson_info' %}">
+                    {% for c in congressperson_list %}
+                    <option value="{{c.congressperson_id}}">
+                        {{c.congressperson_name|title}}
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
+
+        </div>
+
+        <div class="congressperson-info">
         </div>
     </div>
-
-    <div class="box-content">
-        <div class="column chart" id="chart"></div>
+</div>
+<div class="box-content chart">
+    <div class="column" id="chart"></div>
+</div>
+<div id="tooltip" class="box-content" hidden>
+    <div class="column">
         <div class="reimbursement-info">
-            <b>Data do Tweet:</b>
+            <span>Data do Tweet:</span>
             <span id="tweet-date"></span>
-            <b>Quantidade de Favoritos no Tweet:</b>
+        </div>
+        <div class="reimbursement-info">
+            <span>Favoritos (Twitter):</span>
             <span id="tweet-favorites"></span>
-            <b>Valor do Reembolso:</b>
+        </div>
+        <div class="reimbursement-info">
+            <span>Valor do Reembolso:</span>
             <span id="reimbursement-price"></span>
-            <b>Motivo da Suspeita:</b>
+        </div>
+        <div class="reimbursement-info">
+            <span>Motivo da Suspeita:</span>
             <span id="suspicious-reason"></span>
-
         </div>
     </div>
+</div>
 
 
 <input type="hidden" id="twitter-data-url" data-url="{% url 'dataviz:tweet_chart' %}"/>

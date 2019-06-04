@@ -16,7 +16,7 @@ congressperson_select
 function show_congressperson_info(congressperson_id) {
 
     var url = congressperson_url + "?congressperson_id=" + congressperson_id;
-    // todo: how to pass params on dict format (like ajax)
+
     d3.request(url)
         .send(
             "GET",
@@ -24,10 +24,11 @@ function show_congressperson_info(congressperson_id) {
                 if (error) throw error;
                 congressperson_info.html(data.response);
             });
-};
+}
 
 function apply_congressperson_filter(congressperson_id) {
-    var tweets_url = svg.attr('data-url')+ "?congressperson_id=" + congressperson_id;
+    var tweets_url = svg.attr('data-url') + "?congressperson_id=" + congressperson_id;
+
     d3.json(tweets_url, function (error, data) {
 
         if (error) throw error;
@@ -46,37 +47,48 @@ function apply_congressperson_filter(congressperson_id) {
         var circleOpacity = '0.85';
         var circleOpacityOnLineHover = "0.25"
         var circleRadius = 3;
-        var circleRadiusHover = 6;
 
+        var div = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
 
-        /* Format Data */
-        function sortByDateAscending(a, b) {
-            return a.date - b.date;
+        /* Order data */
+        function sort_means(a, b) {
+            return a.period_final_date - b.period_final_date;
+        }
+
+        function sort_reimbursements(a, b) {
+            return a.parsed_issue_date - b.parsed_issue_date;
         }
 
         data.forEach(function (d) {
-
-            d.values.forEach(function (d) {
-                d.date = Date.parse(d.initial_date);
-                d.price = +d.mean_per_day;
+            d.means.forEach(function (d) {
+                d.period_final_date = Date.parse(d.final_date);
+                d.period_mean_price_day = +d.mean_per_day;
+                d.tweet_circle_r = +d.total_net_value / 10;
+                d.tweet_date = d.final_date;
             });
+            d.means = d.means.sort(sort_means);
 
-            d.values = d.values.sort(sortByDateAscending);
-
+            d.reimbursements.forEach(function (d) {
+                d.parsed_issue_date = Date.parse(d.issue_date);
+                d.value = +d.value;
+            });
+            d.reimbursements = d.reimbursements.sort(sort_reimbursements);
         });
 
-        /* Scale */
+        /* Scale - from all reimbursements*/
         var xScale = d3.scaleTime()
-            .domain(d3.extent(data[0].values, d => d.date))
+            .domain(d3.extent(data[0].means, d => d.period_final_date))
             .range([0, width - margin]);
 
         var yScale = d3.scaleLinear()
-            .domain([0, d3.max(data[0].values, d => d.price)])
+            .domain([0, d3.max(data[0].means, d => d.total_net_value)])
             .range([height - margin, 0]);
 
         var color = d3.scaleOrdinal(d3.schemeCategory10);
 
-        /* Add SVG */
+        chart_container.html('');
         var svg = chart_container.append("svg")
             .attr("width", (width + margin) + "px")
             .attr("height", (height + margin) + "px")
@@ -85,13 +97,12 @@ function apply_congressperson_filter(congressperson_id) {
             .attr("width", '100%')
             .attr('preserveAspectRatio', 'xMinYMin');
 
-
-        /* Add line into SVG */
+        /* Add means line */
         var line = d3.line()
-            .x(d => xScale(d.date))
-            .y(d => yScale(d.price));
+            .x(d => xScale(d.period_final_date))
+            .y(d => yScale(d.period_mean_price_day));
 
-        let lines = svg.append('g')
+        var lines = svg.append('g')
             .attr('class', 'lines');
 
         lines.selectAll('.line-group')
@@ -102,7 +113,7 @@ function apply_congressperson_filter(congressperson_id) {
                 svg.append("text")
                     .attr("class", "title-text")
                     .style("fill", color(i))
-                    .text(d.name)
+                    .text(d.period_mean_price_day)
                     .attr("text-anchor", "middle")
                     .attr("x", (width - margin) / 2)
                     .attr("y", 5);
@@ -112,7 +123,7 @@ function apply_congressperson_filter(congressperson_id) {
             })
             .append('path')
             .attr('class', 'line')
-            .attr('d', d => line(d.values))
+            .attr('d', d => line(d.means))
             .style('stroke', (d, i) => color(i))
             .style('opacity', lineOpacity)
             .on("mouseover", function (d) {
@@ -135,64 +146,66 @@ function apply_congressperson_filter(congressperson_id) {
                     .style("cursor", "none");
             });
 
+        var tweetRelevanceColor = d3.scaleLinear().domain([1,20])
+            .range(["white", "purple"]);
 
-        /* Add circles in the line */
+
+        /* Add tweets circles in the line */
         lines.selectAll("circle-group")
             .data(data).enter()
             .append("g")
             .style("fill", (d, i) => color(i))
             .selectAll("circle")
-            .data(d => d.values).enter()
+            .data(d => d.means).enter()
             .append("g")
             .attr("class", "circle")
-            .on("mouseover", function (d) {
-                tooltip_container.node().hidden = false;
-                var price = d.price;
-                price = price.toLocaleString('pt-br', {style: 'currency', currency: 'BRL'});
-                var date = d.final_date;
+            .on("mouseover", function (d, index) {
+                var price = d.total_net_value.toLocaleString('pt-br', {style: 'currency', currency: 'BRL'});
+                var date = d.tweet_date;
                 var favorite = d.favorite_count;
+                var retweets = d.retweet_count;
                 var suspicions = d.suspicions;
-                tooltip_container.select("#tweet-date").node().textContent = date;
-                tooltip_container.select("#tweet-favorites").node().textContent = favorite;
-                tooltip_container.select("#reimbursement-price").node().textContent = price;
-                tooltip_container.select("#suspicious-reason").node().textContent = suspicions;
+                div.transition()
+                    .duration(200)
+                    .style("opacity", .9);
 
-                d3.select(this)
-                    .style("cursor", "pointer")
-                    .append("text")
-                    .style("opacity", 1)
-                    .attr("x", d => xScale(d.date) + 5)
-                    .attr("y", d => yScale(d.price) - 10);
+                div.html("Data do Tweet: " + date
+                    + "<br/>" + "Favoritos (Twitter): " + favorite
+                    + "<br/>" + "Retweets (Twitter): " + retweets
+                    + "<br/>" + "Valor do Reembolso: " + price
+                    + "<br/>" + "Motivo da Suspeita: " + suspicions
+                )
+                    .style("left", (d3.event.pageX - 60) + "px")
+                    .style("top", (d3.event.pageY - 150) + "px");
+
             })
-            .on("mouseout", function (d) {
-                tooltip_container.node().hidden = true;
-
+            .on("click", function (d) {
+                window.open(d.tweet_url, '_blank');
+            })
+            .on("mouseout", function (thisElement, index) {
+                div.transition()
+                    .duration(500)
+                    .style("opacity", 0);
             })
             .append("circle")
-            .attr("cx", d => xScale(d.date))
-            .attr("cy", d => yScale(d.price))
-            .attr("r", circleRadius)
+            .attr("cx", d => xScale(d.period_final_date))
+            .attr("cy", d => yScale(d.period_mean_price_day))
+            .attr("r", d => d.tweet_circle_r)
             .style('opacity', circleOpacity)
             .style("fill", function (d, i) {
-
-                if (d.status != "0") {
-                    '#ff1533'
-                } else {
-                    color(i);
-                }
-
+                return tweetRelevanceColor(d.favorite_count/10)
             })
             .on("mouseover", function (d) {
                 d3.select(this)
                     .transition()
                     .duration(duration)
-                    .attr("r", circleRadiusHover);
+                    .attr("r", d.tweet_circle_r + 1);
             })
             .on("mouseout", function (d) {
                 d3.select(this)
                     .transition()
                     .duration(duration)
-                    .attr("r", circleRadius);
+                    .attr("r", d.tweet_circle_r);
             });
 
 
@@ -212,6 +225,6 @@ function apply_congressperson_filter(congressperson_id) {
             .attr("y", 15)
             .attr("transform", "rotate(-90)")
             .attr("fill", "#000")
-            .text("Total values");
+            .text("Valor médio diário da Refeição no período entre tweets");
     });
 }

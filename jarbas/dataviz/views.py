@@ -39,18 +39,20 @@ def dataviz_dashboard(request):
                   )
 
 
-def get_twitter_data():
+def get_twitter_data(status_ids):
     api = twitter.Api(consumer_key='7VaADONcHBiai9TS8YJ05mcTe',
                       consumer_secret='C58ej1UQF5tg0hd7y54m31CuOUMMFuQoIiGfxc6VnGvNgeJYj6',
                       access_token_key='1030805473426063361-jlNN17oS2osQshKmp94GsrPeNJpwGw',
                       access_token_secret='Lm7Nmw49oAYPd4ZqActTOpapmC6MTiQP4EElT583sMYMB',
                       sleep_on_rate_limit=True)
 
-    tweets = api.GetUserTimeline(
-        screen_name='RosieDaSerenata',
-        count=200,  # this is the maximum suported by Twitter API
-        include_rts=False,
-        exclude_replies=True)
+    # tweets = api.GetUserTimeline(
+    #     screen_name='RosieDaSerenata',
+    #     count=200,  # this is the maximum suported by Twitter API
+    #     include_rts=False,
+    #     exclude_replies=True)
+    tweets = api.GetStatuses(
+        status_ids=status_ids)
 
     tweets = [t.AsDict() for t in tweets]
 
@@ -90,13 +92,14 @@ def tweet_chart(request):
                                         right_on='reimbursement_id',
                                         how='left')
 
-    df_tweet_data = get_twitter_data()
-    df_tweets_reimbursements = pd.merge(df_tweets_reimbursements,
-                                        df_tweet_data,
-                                        left_on='status',
-                                        right_on='id',
-                                        how='left')
-
+    # df_tweet_data = get_twitter_data()
+    # initial_date = datetime.datetime.strptime(df_tweet_data['created_at'].min(), 'Fri Apr 05 13:00:06 +0000 2019')
+    # final_date = df_tweet_data['created_at'].max()
+    # df_tweets_reimbursements = pd.merge(df_tweets_reimbursements,
+    #                                     df_tweet_data,
+    #                                     left_on='status',
+    #                                     right_on='id',
+    #                                     how='left')
     # todos reembolsos do parlamentar
     reimbursements = Reimbursement.objects.filter(
         subquota_number=subquota_number,
@@ -136,7 +139,7 @@ def tweet_chart(request):
     for index, (i, data) in enumerate(row_iterator):
 
         start_date = data.issue_date
-        print(index)
+
         if index + 1 == len_tweets:
             final_date = datetime.date.today()
         else:
@@ -148,14 +151,18 @@ def tweet_chart(request):
             ]
         mean_per_day = period['value'].sum() / delta.days
         mean = period['value'].mean()
-        # from IPython import embed; embed()
         means = means.append(pd.DataFrame(
-            [[congressperson_id, start_date, final_date, mean_per_day, mean, int(data.status),
+            [[congressperson_id, start_date, final_date, mean_per_day, mean, str(data.status),
+              "https://twitter.com/RosieDaSerenata/status/" + str(data.status),
               float(data.total_net_value), list(data.suspicions.keys())]],
-            columns=["congressperson_id", "initial_date", "final_date", "mean_per_day", "mean", "tweet_id",
+            columns=["congressperson_id", "initial_date", "final_date", "mean_per_day", "mean", "tweet_id",  "tweet_url",
                      "total_net_value", "suspicions"],
         ), sort=True)
+    # from IPython import embed; embed()
 
+    df_tweet_data = get_twitter_data(status_ids=means['tweet_id'].tolist())
+    df_tweet_data['id'] = df_tweet_data['id'].astype(str)
+    means['tweet_id'] = means['tweet_id'].astype(str)
     means = pd.merge(means,
                      df_tweet_data,
                      left_on='tweet_id',
@@ -164,10 +171,13 @@ def tweet_chart(request):
 
     means['initial_date'] = means['initial_date'].apply(lambda x: x.strftime('%m/%d/%Y'))
     means['final_date'] = means['final_date'].apply(lambda x: x.strftime('%m/%d/%Y'))
+    df_all_reimbursements['issue_date'] = df_all_reimbursements['issue_date'].apply(lambda x: x.strftime('%m/%d/%Y'))
+
     means = means.fillna(0)
     d = [
         {'congressperson_id': str(congressperson_id),
-         'values': means[means['congressperson_id'] == congressperson_id].to_dict('records')}
+         'means': means[means['congressperson_id'] == congressperson_id].to_dict('records'),
+         'reimbursements': df_all_reimbursements.to_dict('records')}
         for congressperson_id in means['congressperson_id'].unique()
     ]
 
@@ -184,8 +194,6 @@ def get_congress_person_data(request):
         )
     except SocialMedia.DoesNotExist:
         social_media = None
-
-    # todo pode ser que nao tenha socialmedia
 
     dados_abertos_api = "https://dadosabertos.camara.leg.br/api/v2/deputados/" + congressperson_id
     # todo: define url to external api

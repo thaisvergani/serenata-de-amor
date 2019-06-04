@@ -52,7 +52,6 @@ body {
 }
 .column {
     max-width: 960px;
-    margin: 100px auto 0;
     padding: 0 16px;
     position: relative;
     line-height: 1.5;
@@ -132,6 +131,8 @@ h5{
 }
 div.tooltip {
     position: absolute;
+    background-color: white;
+    opacity: .99;
 
 }
 

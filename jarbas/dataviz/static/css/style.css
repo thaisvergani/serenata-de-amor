@@ -1,6 +1,6 @@
 .line {
     fill: none;
-    stroke: #5a44a0;
+    stroke: #8d0098;
     stroke-width: 3;
 }
 
@@ -11,13 +11,13 @@
 
 /* Style the dots by assigning a fill and stroke */
 .dot {
-    fill: #5a44a0;
+    fill: #8d0098;
     stroke: #fff;
 }
 
 .focus circle {
     fill: none;
-    stroke: steelblue;
+    stroke: #7d2598;
 }
 
 html {
@@ -52,6 +52,7 @@ body {
 }
 .column {
     max-width: 960px;
+    margin: 100px auto 0;
     padding: 0 16px;
     position: relative;
     line-height: 1.5;
@@ -85,23 +86,6 @@ h5{
 
 .column span{
     line-height: 35px;
-}
-.select-box {
-    display: inline-block;
-    width: calc(100% - 180px);
-    padding-right: 25px;
-    vertical-align: top;
-    float: right;
-    position: relative;
-    height: 38px;
-    line-height: 30px;
-    box-sizing: border-box;
-    cursor: pointer;
-    border: 1px solid #eeedf4;
-    background-size: 30px auto;
-    overflow: hidden;
-    font-family: Roboto, sans-serif;
-
 }
 
 .select-box select {
@@ -148,6 +132,7 @@ div.tooltip {
     position: relative;
     float: left;
     overflow: hidden;
+    margin-right: 20px;
 }
 .profile-pic img{
     width: 120px;
@@ -161,4 +146,22 @@ div.tooltip {
 }
 .congressperson-info{
     display:flex;
+    margin: 20px 20px;
+
+}
+
+.filter-label{
+        text-align: left;
+        padding-right: 20px;
+        width: 130px;
+
+}
+.filter{
+        padding-bottom: 10px;
+        height:40px;
+    margin: auto;
+        width: fit-content;
+
+    display: flex;
+
 }

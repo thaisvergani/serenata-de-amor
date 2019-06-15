@@ -1,17 +1,65 @@
 var svg = d3.select('#twitter-data-url'),
-    chart_container = d3.select("#chart"),
+    tweet_chart = d3.select("#tweet_chart"),
+    reimbursements_chart = d3.select("#reimbursements_chart"),
+    refund_chart = d3.select("#refund_chart"),
     tooltip_container = d3.select("#tooltip"),
     congressperson_info = d3.select(".congressperson-info"),
     congressperson_select = d3.select("#congressperson"),
     congressperson_url = congressperson_select.attr('data-url');
+var width = tweet_chart.node().getBoundingClientRect().width - 50;
+var height = 300;
+var margin = 50;
+var duration = 250;
 
-congressperson_select
-    .on('change', function () {
+var defaultOpacity = "0.25";
+var opacityHover = "0.85";
+var otherLinesOpacityHover = "0.1";
+var lineStroke = "1.5px";
+var lineStrokeHover = "2.5px";
+
+var circleOpacity = '0.85';
+var circleOpacityHover = '1';
+var circleOpacityOnLineHover = "0.25"
+var circleRadius = 3;
+var circleRadiusHover = 8;
+var reimbursementsColor = "#949494";
+var reimbursementsColorHover = "#8d0098";
+
+var tweetRelevanceColor = d3.scaleLinear().domain([0, 20])
+    .range(["white", "purple"]);
+var color = d3.scaleOrdinal(d3.schemeCategory10);
+
+var tooltip = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 0);
+
+$("#legislatures-select")
+    .chosen({
+        allow_single_deselect: true,
+        placeholder_text_single: "Selecione uma Legislatura",
+        no_results_text: "Sem Resultados"
+    });
+
+$("#congressperson")
+    .chosen({
+        allow_single_deselect: true,
+        placeholder_text_single: "Selecione um Parlamentar",
+        no_results_text: "Nenhum Parlamentar encontrado"
+
+    })
+    .change(function () {
+        tweet_chart.html('');
+        reimbursements_chart.html('');
+        congressperson_info.html('');
         var congressperson_id = congressperson_select.property('value');
 
         show_congressperson_info(congressperson_id);
         apply_congressperson_filter(congressperson_id);
     });
+
+$(document).ready(function () {
+    show_refund_chart();
+});
 
 function show_congressperson_info(congressperson_id) {
 
@@ -26,70 +74,158 @@ function show_congressperson_info(congressperson_id) {
             });
 }
 
-function apply_congressperson_filter(congressperson_id) {
-    var tweets_url = svg.attr('data-url') + "?congressperson_id=" + congressperson_id;
+function show_refund_chart() {
 
-    d3.json(tweets_url, function (error, data) {
+    var refund_url = svg.attr('data-url-refund');
+    moment.locale('pt-BR');
+    var target = document.getElementById("refund_chart");
+    var spinner = new Spinner({
+        lines: 9, // The number of lines to draw
+        length: 9, // The length of each line
+        width: 5, // The line thickness
+        radius: 14, // The radius of the inner circle
+        color: '#711298', // #rgb or #rrggbb or array of colors
+        speed: 1.9, // Rounds per second
+        trail: 40, // Afterglow percentage
+        className: 'spinner', // The CSS class to assign to the spinner
+    }).spin(target);
+
+    d3.json(refund_url, function (error, data) {
+        spinner.stop();
 
         if (error) throw error;
-
-        var width = chart_container.node().getBoundingClientRect().width - 50;
-        var height = 300;
-        var margin = 50;
-        var duration = 250;
-
-        var lineOpacity = "0.25";
-        var lineOpacityHover = "0.85";
-        var otherLinesOpacityHover = "0.1";
-        var lineStroke = "1.5px";
-        var lineStrokeHover = "2.5px";
-
-        var circleOpacity = '0.85';
-        var circleOpacityOnLineHover = "0.25"
-        var circleRadius = 3;
-
-        var div = d3.select("body").append("div")
-            .attr("class", "tooltip")
-            .style("opacity", 0);
-
-        /* Order data */
-        function sort_means(a, b) {
-            return a.period_final_date - b.period_final_date;
+        if (data.msg) {
+            reimbursements_chart.html(data.msg);
+            return
         }
-
-        function sort_reimbursements(a, b) {
-            return a.parsed_issue_date - b.parsed_issue_date;
-        }
-
+        /* Order and parse data */
         data.forEach(function (d) {
-            d.means.forEach(function (d) {
-                d.period_final_date = Date.parse(d.final_date);
-                d.period_mean_price_day = +d.mean_per_day;
-                d.tweet_circle_r = +d.total_net_value / 10;
-                d.tweet_date = d.final_date;
-            });
-            d.means = d.means.sort(sort_means);
-
-            d.reimbursements.forEach(function (d) {
-                d.parsed_issue_date = Date.parse(d.issue_date);
-                d.value = +d.value;
-            });
-            d.reimbursements = d.reimbursements.sort(sort_reimbursements);
+            d.parsed_created_at = Date.parse(d.created_at);
+            d.formatted_created_at = moment(d.parsed_created_at).format('DD/MM/YYYY');
+            d.tweet_circle_r = 10;
+            d.tweet_color = tweetRelevanceColor(d.favorite_count / 10);
+        });
+        data = data.sort(function (a, b) {
+            return a.parsed_created_at - b.parsed_created_at;
         });
 
-        /* Scale - from all reimbursements*/
         var xScale = d3.scaleTime()
-            .domain(d3.extent(data[0].means, d => d.period_final_date))
+            .domain(d3.extent(data, d => d.parsed_created_at))
             .range([0, width - margin]);
 
         var yScale = d3.scaleLinear()
-            .domain([0, d3.max(data[0].means, d => d.total_net_value)])
+            .domain([0, d3.max(data, d => d.total_net_value)])
             .range([height - margin, 0]);
 
-        var color = d3.scaleOrdinal(d3.schemeCategory10);
+        var refund_svg = refund_chart.append("svg")
+            .attr("width", (width + margin) + "px")
+            .attr("height", (height + margin) + "px")
+            .append('g')
+            .attr("transform", `translate(${margin}, ${margin})`)
+            .attr("width", '100%')
+            .attr('preserveAspectRatio', 'xMinYMin');
+        refund_svg.selectAll("dot")
+            .data(data)
+            .enter()
+            .append("circle")
+            .attr("r", 3.5)
+            .attr("cx", function (d) {
+                return x(d.parsed_created_at);
+            })
+            .attr("cy", function (d) {
+                return y(d.total_net_value);
+            });
 
-        chart_container.html('');
-        var svg = chart_container.append("svg")
+    })
+
+}
+
+function apply_congressperson_filter(congressperson_id) {
+    var tweets_url = svg.attr('data-url-tweets') + "?congressperson_id=" + congressperson_id;
+    moment.locale('pt-BR');
+    var target = document.getElementById("reimbursements_chart");
+
+    var spinner = new Spinner({
+        lines: 9, // The number of lines to draw
+        length: 9, // The length of each line
+        width: 5, // The line thickness
+        radius: 14, // The radius of the inner circle
+        color: '#711298', // #rgb or #rrggbb or array of colors
+        speed: 1.9, // Rounds per second
+        trail: 40, // Afterglow percentage
+        className: 'spinner', // The CSS class to assign to the spinner
+    }).spin(target);
+
+    d3.json(tweets_url, function (error, data) {
+
+        spinner.stop();
+
+        if (error) throw error;
+        if (data.msg) {
+            reimbursements_chart.html(data.msg);
+            return
+        }
+
+        /* Order and parse data */
+        data.forEach(function (d) {
+            d.means.forEach(function (d) {
+                d.month = Date.parse(d.issue_date);
+                d.formatted_period = moment(d.month).format('MMMM/YYYY');
+            });
+            d.means = d.means.sort(function (a, b) {
+                return a.month - b.month;
+            });
+
+            d.reimbursements.forEach(function (d) {
+                d.parsed_issue_date = Date.parse(d.issue_date);
+                d.formatted_issue_date = moment(d.parsed_issue_date).format('DD/MM/YYYY');
+                d.value = +d.value;
+            });
+            d.reimbursements = d.reimbursements.sort(function (a, b) {
+                return a.parsed_issue_date - b.parsed_issue_date;
+            });
+
+            d.tweets.forEach(function (d) {
+                d.parsed_created_at = Date.parse(d.created_at);
+                d.parsed_issue_date = Date.parse(d.created_at);
+                d.formatted_created_at = moment(d.parsed_created_at).format('DD/MM/YYYY');
+                d.formatted_issue_date = moment(d.parsed_created_at).format('DD/MM/YYYY');
+                d.tweet_circle_r = 10;
+                d.tweet_color = tweetRelevanceColor(d.favorite_count / 10);
+
+            });
+            d.tweets = d.tweets.sort(function (a, b) {
+                return a.parsed_created_at - b.parsed_created_at;
+            });
+        });
+
+        /* Scale - from all reimbursements*/
+        max_x = d3.max(data[0].tweets, d => d.parsed_created_at);
+        if (!max_x) {
+            max_x = d3.max(data[0].means, d => d.month);
+        }
+        var xScale = d3.scaleTime()
+            .domain([d3.min(data[0].reimbursements, d => d.parsed_issue_date), max_x])
+            .range([0, width - margin]);
+
+        var yScaleMeans = d3.scaleLinear()
+            .domain([0, d3.max(data[0].means, d => d.value)])
+            .range([height - margin, 0]);
+
+        var yScaleReimbursements = d3.scaleLinear()
+            .domain([0, d3.max(data[0].reimbursements, d => d.value)])
+            .range([height - margin, 0]);
+
+
+        var tweet_svg = tweet_chart.append("svg")
+            .attr("width", (width + margin) + "px")
+            .attr("height", (height + margin) + "px")
+            .append('g')
+            .attr("transform", `translate(${margin}, ${margin})`)
+            .attr("width", '100%')
+            .attr('preserveAspectRatio', 'xMinYMin');
+
+        var reimbursements_svg = reimbursements_chart.append("svg")
             .attr("width", (width + margin) + "px")
             .attr("height", (height + margin) + "px")
             .append('g')
@@ -99,77 +235,109 @@ function apply_congressperson_filter(congressperson_id) {
 
         /* Add means line */
         var line = d3.line()
-            .x(d => xScale(d.period_final_date))
-            .y(d => yScale(d.period_mean_price_day));
+            .x(d => xScale(d.month))
+            .y(d => yScaleMeans(d.value));
 
-        var lines = svg.append('g')
+        var lines = tweet_svg.append('g')
+            .attr('class', 'lines');
+        var reimbusement_lines = reimbursements_svg.append('g')
             .attr('class', 'lines');
 
-        lines.selectAll('.line-group')
-            .data(data).enter()
-            .append('g')
-            .attr('class', 'line-group')
-            .on("mouseover", function (d, i) {
-                svg.append("text")
-                    .attr("class", "title-text")
-                    .style("fill", color(i))
-                    .text(d.period_mean_price_day)
-                    .attr("text-anchor", "middle")
-                    .attr("x", (width - margin) / 2)
-                    .attr("y", 5);
+        /* Add Axis into SVG tweet_svg */
+        var xAxis = d3.axisBottom(xScale)
+            .ticks(10)
+            .tickFormat(function (d) {
+
+                return moment(d).format('DD/MMM/YY')
+            });
+
+        var yAxis = d3.axisLeft(yScaleMeans).ticks(5);
+
+        tweet_svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", `translate(0, ${height - margin})`)
+            .call(xAxis);
+
+        tweet_svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis)
+            .append('text')
+            .attr("y", 15)
+            .attr("transform", "rotate(-90)")
+            .attr("fill", "#000")
+            .text("Média diária no período entre tweets (reais)");
+
+        /* Means Bars  */
+        tweet_svg.append("g")
+            .selectAll(".bar")
+            .data(data[0].means).enter()
+            .append("rect")
+            .attr("class", "bar")
+            .attr("x", function (d) {
+                return xScale(d.month);
             })
-            .on("mouseout", function (d) {
-                svg.select(".title-text").remove();
+            .attr("y", function (d) {
+                return yScaleMeans(d.value);
             })
-            .append('path')
-            .attr('class', 'line')
-            .attr('d', d => line(d.means))
-            .style('stroke', (d, i) => color(i))
-            .style('opacity', lineOpacity)
+            .attr("width", 10)
+            .style("fill", reimbursementsColor)
+            .attr("height", function (d) {
+                return height - margin - yScaleMeans(d.value);
+            })
+            .style('opacity', defaultOpacity)
             .on("mouseover", function (d) {
-                d3.selectAll('.line')
-                    .style('opacity', otherLinesOpacityHover);
-                d3.selectAll('.circle')
-                    .style('opacity', circleOpacityOnLineHover);
+                var period = d.formatted_period,
+                    mean = d.value.toLocaleString('pt-br', {style: 'currency', currency: 'BRL'});
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                tooltip.html("Período: " + period
+                    + "<br/>" + "Média de gasto diário no período: " + mean
+                )
+                    .style("left", (d3.event.pageX - 60) + "px")
+                    .style("top", (d3.event.pageY - 150) + "px");
+
                 d3.select(this)
-                    .style('opacity', lineOpacityHover)
-                    .style("stroke-width", lineStrokeHover)
+                    .transition()
+                    .duration(200)
+                    .style("opacity", opacityHover)
                     .style("cursor", "pointer");
             })
             .on("mouseout", function (d) {
-                d3.selectAll(".line")
-                    .style('opacity', lineOpacity);
-                d3.selectAll('.circle')
-                    .style('opacity', circleOpacity);
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
                 d3.select(this)
-                    .style("stroke-width", lineStroke)
-                    .style("cursor", "none");
+                    .transition()
+                    .duration(200)
+                    .style("opacity", defaultOpacity)
+                    .style("cursor", "normal");
             });
-
-        var tweetRelevanceColor = d3.scaleLinear().domain([1,20])
-            .range(["white", "purple"]);
 
 
         /* Add tweets circles in the line */
         lines.selectAll("circle-group")
             .data(data).enter()
             .append("g")
-            .style("fill", (d, i) => color(i))
             .selectAll("circle")
-            .data(d => d.means).enter()
+            .data(d => d.tweets).enter()
             .append("g")
-            .attr("class", "circle")
+            .attr("class", function (d, index) {
+                return "tweet_" + d.id;
+            })
             .on("mouseover", function (d, index) {
-                var price = d.total_net_value.toLocaleString('pt-br', {style: 'currency', currency: 'BRL'});
-                var date = d.tweet_date;
+                var price = d.value.toLocaleString('pt-br', {style: 'currency', currency: 'BRL'});
+                var date = d.formatted_created_at;
+                var date_r = d.formatted_issue_date;
                 var favorite = d.favorite_count;
                 var retweets = d.retweet_count;
                 var suspicions = d.suspicions;
-                div.transition()
+                tooltip.transition()
                     .duration(200)
                     .style("opacity", .9);
 
-                div.html("Data do Tweet: " + date
+                tooltip.html("Data do Tweet: " + date
+                    + "<br/>" + "Data do Reembolso: " + date_r
                     + "<br/>" + "Favoritos (Twitter): " + favorite
                     + "<br/>" + "Retweets (Twitter): " + retweets
                     + "<br/>" + "Valor do Reembolso: " + price
@@ -180,51 +348,130 @@ function apply_congressperson_filter(congressperson_id) {
 
             })
             .on("click", function (d) {
-                window.open(d.tweet_url, '_blank');
+                tweet_url = "https://twitter.com/RosieDaSerenata/status/" + d.status;
+                window.open(tweet_url, '_blank');
             })
             .on("mouseout", function (thisElement, index) {
-                div.transition()
+                tooltip.transition()
                     .duration(500)
                     .style("opacity", 0);
             })
             .append("circle")
-            .attr("cx", d => xScale(d.period_final_date))
-            .attr("cy", d => yScale(d.period_mean_price_day))
+            .attr("cx", d => xScale(d.parsed_created_at))
+            .attr("cy", 50)
             .attr("r", d => d.tweet_circle_r)
             .style('opacity', circleOpacity)
-            .style("fill", function (d, i) {
-                return tweetRelevanceColor(d.favorite_count/10)
-            })
+            .style("fill", d => d.tweet_color)
             .on("mouseover", function (d) {
                 d3.select(this)
                     .transition()
                     .duration(duration)
-                    .attr("r", d.tweet_circle_r + 1);
+                    .attr("r", d.tweet_circle_r + 1)
+                    .style("cursor", "pointer");
+                d3.select(".reimb_" + d.reimbursement_id)
+                    .style("opacity", circleOpacityHover)
+                    .select('circle')
+                    .transition()
+                    .duration(duration)
+                    .attr('r', circleRadiusHover);
+
             })
             .on("mouseout", function (d) {
                 d3.select(this)
                     .transition()
                     .duration(duration)
-                    .attr("r", d.tweet_circle_r);
+                    .attr("r", d.tweet_circle_r)
+                    .style("cursor", "none");
+                d3.selectAll('.circle')
+                    .style('opacity', circleOpacity)
+                    .transition()
+                    .duration(duration)
+                    .select('circle')
+                    .attr('r', circleRadius);
             });
 
 
-        /* Add Axis into SVG */
-        var xAxis = d3.axisBottom(xScale).ticks(5);
-        var yAxis = d3.axisLeft(yScale).ticks(5);
+        /* Add reimbursement circles */
+        reimbusement_lines.selectAll("circle-group")
+            .data(data).enter()
+            .append("g")
+            .selectAll("circle")
+            .data(d => d.reimbursements).enter()
+            .append("g")
+            .attr("class", function (d, index) {
+                return "circle reimb_" + d.reimbursement_id;
+            })
+            .style("fill", function (d, i) {
 
-        svg.append("g")
+                if (d.suspicions == 0) {
+                    return reimbursementsColor
+                } else {
+                    return reimbursementsColorHover
+                }
+            })
+            .on("mouseover", function (d, index) {
+                var price = d.value.toLocaleString('pt-br', {style: 'currency', currency: 'BRL'});
+                var date = d.formatted_issue_date;
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+
+                tooltip.html("Data do Reembolso: " + date
+                    + "<br/>" + "Valor do Reembolso: " + price
+                )
+                    .style("left", (d3.event.pageX - 60) + "px")
+                    .style("top", (d3.event.pageY - 80) + "px");
+
+            })
+            .on("click", function (d) {
+                url = "https://jarbas.serenata.ai/layers/#/documentId/" + d.document_id;
+                window.open(url, '_blank');
+            })
+            .on("mouseout", function (thisElement, index) {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            })
+            .append("circle")
+            .attr("cx", d => xScale(d.parsed_issue_date))
+            .attr("cy", d => yScaleReimbursements(d.value))
+            .attr("r", circleRadius)
+            .style('opacity', circleOpacity)
+            .on("mouseover", function (d) {
+                d3.select(this)
+                    .transition()
+                    .duration(duration)
+                    .attr("r", circleRadiusHover)
+                    .style('opacity', circleOpacityHover)
+                    .style("cursor", "pointer");
+
+            })
+            .on("mouseout", function (d) {
+                d3.select(this)
+                    .transition()
+                    .duration(duration)
+                    .attr("r", circleRadius)
+                    .style('opacity', circleOpacity)
+                    .style("cursor", "none");
+
+
+            });
+
+        /* Add Axis into SVG tweet_svg */
+        var yAxis = d3.axisLeft(yScaleReimbursements).ticks(5);
+
+        reimbusement_lines.append("g")
             .attr("class", "x axis")
             .attr("transform", `translate(0, ${height - margin})`)
             .call(xAxis);
 
-        svg.append("g")
+        reimbusement_lines.append("g")
             .attr("class", "y axis")
             .call(yAxis)
             .append('text')
             .attr("y", 15)
             .attr("transform", "rotate(-90)")
             .attr("fill", "#000")
-            .text("Valor médio diário da Refeição no período entre tweets");
+            .text("Valor da Refeição (em reais)");
     });
 }

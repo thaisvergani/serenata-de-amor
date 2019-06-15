@@ -7,9 +7,19 @@
 
     <title>Dataviz</title>
     <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="{% static 'js/lib/moment.min.js' %}"  async></script>
+    <script src="{% static 'js/lib/moment-with-locales.min.js' %}" async></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chosen/1.8.7/chosen.jquery.min.js"></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/spin.js/2.0.1/spin.min.js'></script>
+
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500" class="next-head">
-    <script src="{% static 'js/twitter.js' %}" async></script>
+
+    <link href="{% static 'css/custom_chosen.css' %}" rel="stylesheet" type="text/css" media="all">
     <link href="{% static 'css/style.css' %}" rel="stylesheet" type="text/css" media="all">
+    <script src="{% static 'js/twitter.js' %}" async></script>
+
 </head>
 <body>
 <div class="box-content first" id="box1">
@@ -17,41 +27,71 @@
         <div class="centered top-text">
             <h1>Dataviz</h1>
 
-            <h5 class="al-left">O impacto do controle social na Câmara dos Deputados.</h5>
+            <h5 class="centered">O impacto do controle social na Câmara dos Deputados.</h5>
             <p class="al-left">Como os Tweets feitos pela
                 <a href="https://twitter.com/RosieDaSerenata">@RosieDaSerenata</a>
-                podem impactar os gastos relacionados às refeições dos parlamentares?</p>
+                podem impactar os gastos dos parlamentares?</p>
         </div>
     </div>
 
-    <div class="column">
+    <div class="column ">
 
-        <div class="centered" id="intro">
-                <span>Parlamentar:
+        <div  class="filter">
+                <span class="filter-label">
+                    Parlamentar:
 
                 </span>
 
-            <div class="select-box">
-                <select id="congressperson" data-url="{% url 'dataviz:congressperson_info' %}">
+                <select id="congressperson"
+                        class="chosen-select dataviz-select"
+                        style="    width: 600px;"
+                        data-url="{% url 'dataviz:congressperson_info' %}">
+                       <option value="" ></option>
+
                     {% for c in congressperson_list %}
-                    <option value="{{c.congressperson_id}}">
-                        {{c.congressperson_name|title}}
+                    <option value="{{c.id}}">
+                        {{c.nome|title}} - {{c.siglaPartido}}
                     </option>
                     {% endfor %}
                 </select>
-            </div>
 
         </div>
 
-        <div class="congressperson-info">
+        <div  class="filter ">
+                <span class="filter-label">
+                    Legislatura:
+
+                </span>
+
+                <select id="legislatures-select"
+                        class="chosen-select dataviz-select"
+                        style="    width: 600px;">
+                       <option value="" ></option>
+
+                    {% for l in legislaturas %}
+                    <option value="{{l.id}}">
+                        {{l.dataInicio }} - {{l.dataFim|date }}
+                    </option>
+                    {% endfor %}
+                </select>
+
+        </div>
+
+        <div class="congressperson-info" id="congressperson-info">
         </div>
     </div>
 </div>
 <div class="box-content chart">
-    <div class="column" id="chart"></div>
+    <div class="column" id="refund_chart"></div>
+    <div class="column" id="tweet_chart"></div>
+    <div class="column" id="reimbursements_chart"></div>
 </div>
 
 
-<input type="hidden" id="twitter-data-url" data-url="{% url 'dataviz:tweet_chart' %}"/>
+<input type="hidden"
+       id="twitter-data-url"
+       data-url-tweets="{% url 'dataviz:tweet_chart' %}"
+       data-url-refund="{% url 'dataviz:refund_chart' %}"
+/>
 </body>
 </html>

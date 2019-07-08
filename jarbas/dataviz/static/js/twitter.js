@@ -448,8 +448,10 @@ function apply_congressperson_filter(congressperson_id) {
                     + "<br/>" + "Motivo da Suspeita: " + suspicions
                 ).style("z-index", 100)
                     .style("background", "#f8f8f8")
-                    .style("left", (d3.event.pageX - 60) + "px")
-                    .style("top", (d3.event.pageY - 170) + "px");
+                    .style("left", (d3.event.pageX - 260) + "px")
+                    .style("top", (d3.event.pageY - 200) + "px")
+                                    .style("opacity", 1);
+
 
             })
             .on("click", function (d) {
@@ -523,7 +525,8 @@ function apply_congressperson_filter(congressperson_id) {
 
                 tooltip.html("Data do Reembolso: " + date
                     + "<br/>" + "Valor do Reembolso: " + price
-                )
+                ).style("z-index", 100)
+                    .style("background", "#f8f8f8")
                     .style("left", (d3.event.pageX - 60) + "px")
                     .style("top", (d3.event.pageY - 80) + "px");
 

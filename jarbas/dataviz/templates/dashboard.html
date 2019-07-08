@@ -40,7 +40,7 @@
 
             <select id="year"
                     class="chosen-select dataviz-select"
-                    style="    width: 600px;"
+                    style="    width: 600px; "
                     data-url="{% url 'dataviz:congressperson_info' %}">
 
                 {% for y in years %}
@@ -67,15 +67,14 @@
 
             </p>
         </div>
-        <div class="column" id="refund_chart">
-            <br/>
-            <br/>
+        <div class="column" id="refund_chart" style="    min-height: 150px;">
+
 
         </div>
 
     </div>
 
-    <div class="box-content" style="    margin-top: 50px; margin-bottom:20px">
+    <div class="box-content" style="    margin-top: 50px;     height: 350px;">
 
 
         <div class="filter">
@@ -101,10 +100,6 @@
         <div class="column " style="    margin-top: 0px; margin-bottom:20px">
 
         <div class="congressperson-info" id="congressperson-info">
-                 <br/>
-            <br/>
-         <br/>
-            <br/>
 
         </div>
         </div>
@@ -120,7 +115,7 @@
                 Entenda qual é impacto das publicações na média de gastos do parlamentar.
             </p>
         </div>
-        <div class="column" id="tweet_chart">
+        <div class="column" id="tweet_chart"  style="    min-height: 100px;">
             Selecione um parlamentar para visualizar o gráfico de Tweets.
         </div>
         <div class="column ">
@@ -128,11 +123,11 @@
 
             <p>
                 Entenda qual a frequência e quais os valores dos reembolsos feitos pelo parlamentar.
-                Alguns pontos estão destacados para representar os tweets que foram feitos pela Rosie.
+                Os pontos destacados em roxo são referentes à reembolsos considerados suspeitos pela Rosie.
             </p>
         </div>
 
-        <div class="column" id="reimbursements_chart">
+        <div class="column" id="reimbursements_chart" style="    min-height: 150px;">
             Selecione um parlamentar para carregar a visualização de reembolsos.
 
         </div>
@@ -149,7 +144,7 @@
             <p>Para mais visualizaçõe dos gastos parlamentares acesse o site da
                 <a target="_blank"
                    href="https://www.camara.leg.br/transparencia/gastos-parlamentares">
-                    Câmara de Deputados
+                    Câmara de Deputados.
                 </a>
             </p>
         </div>

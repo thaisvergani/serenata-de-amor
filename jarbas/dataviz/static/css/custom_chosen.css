@@ -64,10 +64,11 @@
     color: #444;
     text-decoration: none;
     white-space: nowrap;
-    line-height: 24px;
+    line-height: 40px;
 }
 .chosen-container-single .chosen-default {
-    color: #999
+    color: #999;
+    line-height: 40px;
 }
 
 .chosen-container-single .chosen-single span {

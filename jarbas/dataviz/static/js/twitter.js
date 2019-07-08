@@ -5,7 +5,8 @@ var svg = d3.select('#twitter-data-url'),
     tooltip_container = d3.select("#tooltip"),
     congressperson_info = d3.select(".congressperson-info"),
     congressperson_select = d3.select("#congressperson"),
-    congressperson_url = congressperson_select.attr('data-url');
+    congressperson_url = congressperson_select.attr('data-url'),
+    year_select = d3.select("#year");
 var width = tweet_chart.node().getBoundingClientRect().width - 50;
 var height = 300;
 var margin = 50;
@@ -17,13 +18,14 @@ var otherLinesOpacityHover = "0.1";
 var lineStroke = "1.5px";
 var lineStrokeHover = "2.5px";
 
-var circleOpacity = '0.85';
+var circleOpacity = '0.8';
 var circleOpacityHover = '1';
 var circleOpacityOnLineHover = "0.25"
 var circleRadius = 3;
 var circleRadiusHover = 8;
 var reimbursementsColor = "#949494";
 var reimbursementsColorHover = "#8d0098";
+var refundColor = "#33ac00";
 
 var tweetRelevanceColor = d3.scaleLinear().domain([0, 20])
     .range(["white", "purple"]);
@@ -31,7 +33,19 @@ var color = d3.scaleOrdinal(d3.schemeCategory10);
 
 var tooltip = d3.select("body").append("div")
     .attr("class", "tooltip")
-    .style("opacity", 0);
+    .style("opacity", 1);
+
+$("#year")
+    .chosen({
+        allow_single_deselect: true,
+        placeholder_text_single: "Selecione um Ano",
+        no_results_text: "Sem Resultados"
+    })
+    .change(function () {
+        refund_chart.html('');
+
+        show_refund_chart();
+    });
 
 $("#legislatures-select")
     .chosen({
@@ -75,7 +89,6 @@ function show_congressperson_info(congressperson_id) {
 }
 
 function show_refund_chart() {
-
     var refund_url = svg.attr('data-url-refund');
     moment.locale('pt-BR');
     var target = document.getElementById("refund_chart");
@@ -89,7 +102,6 @@ function show_refund_chart() {
         trail: 40, // Afterglow percentage
         className: 'spinner', // The CSS class to assign to the spinner
     }).spin(target);
-
     d3.json(refund_url, function (error, data) {
         spinner.stop();
 
@@ -102,17 +114,21 @@ function show_refund_chart() {
         data.forEach(function (d) {
             d.parsed_created_at = Date.parse(d.created_at);
             d.formatted_created_at = moment(d.parsed_created_at).format('DD/MM/YYYY');
-            d.tweet_circle_r = 10;
+            // d.tweet_circle_r = (d.favorite_count / 10);
+            d.tweet_circle_r = circleRadius;
             d.tweet_color = tweetRelevanceColor(d.favorite_count / 10);
+
         });
         data = data.sort(function (a, b) {
             return a.parsed_created_at - b.parsed_created_at;
         });
-
+        var year = year_select.property('value');
+        data = data.filter(function (d) {
+            return moment(d.parsed_created_at).format('YYYY') == year
+        });
         var xScale = d3.scaleTime()
             .domain(d3.extent(data, d => d.parsed_created_at))
             .range([0, width - margin]);
-
         var yScale = d3.scaleLinear()
             .domain([0, d3.max(data, d => d.total_net_value)])
             .range([height - margin, 0]);
@@ -124,17 +140,104 @@ function show_refund_chart() {
             .attr("transform", `translate(${margin}, ${margin})`)
             .attr("width", '100%')
             .attr('preserveAspectRatio', 'xMinYMin');
+
         refund_svg.selectAll("dot")
             .data(data)
             .enter()
             .append("circle")
-            .attr("r", 3.5)
-            .attr("cx", function (d) {
-                return x(d.parsed_created_at);
+            .style("fill", function (d, i) {
+                if (d.total_value > 0) {
+                    return refundColor
+                } else {
+                    return reimbursementsColor
+                }
             })
-            .attr("cy", function (d) {
-                return y(d.total_net_value);
+            .on("click", function (d) {
+                tweet_url = "https://twitter.com/RosieDaSerenata/status/" + d.status;
+                window.open(tweet_url, '_blank');
+            })
+            .attr("cx", d => xScale(d.parsed_created_at))
+            .attr("cy", d => yScale(d.total_net_value))
+            .attr("r", d => d.tweet_circle_r)
+            .style('opacity', function (d, i) {
+                if (d.total_value > 0) {
+                    return 0.9
+                } else {
+                    return 0.5
+                }
+            })
+            .on("mouseover", function (d) {
+                var price = d.total_net_value.toLocaleString(
+                    'pt-br',
+                    {style: 'currency', currency: 'BRL'});
+                var refund = d.total_value.toLocaleString(
+                    'pt-br',
+                    {style: 'currency', currency: 'BRL'});
+                var date = d.formatted_created_at;
+                var favorite = d.favorite_count;
+                var retweets = d.retweet_count;
+                var suspicions = d.suspicions;
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .98);
+
+                tooltip.html("Data do Tweet: " + date
+                    + "<br/>" + "Favoritos (Twitter): " + favorite
+                    + "<br/>" + "Retweets (Twitter): " + retweets
+                    + "<br/>" + "Valor do Reembolso: " + price
+                    + "<br/>" + "Valor restituído: " + refund
+                )
+                    .style("z-index", 100)
+                    .style("background", "#f8f8f8")
+                    .style("left", (d3.event.pageX + 20) + "px")
+                    .style("top", (d3.event.pageY - 80) + "px");
+
+                d3.select(this)
+                    .transition()
+                    .duration(duration)
+                    .attr("r", d => d.tweet_circle_r + 10)
+                    .style('opacity', circleOpacityHover)
+                    .style("cursor", "pointer");
+
+            })
+            .on("mouseout", function (d) {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+                d3.select(this)
+                    .transition()
+                    .duration(duration)
+                    .attr("r", d => d.tweet_circle_r)
+                    .style('opacity', circleOpacity)
+                    .style("cursor", "none");
+
+
             });
+
+
+        /* Add Axis into SVG tweet_svg */
+        var xAxis = d3.axisBottom(xScale)
+            .ticks(10)
+            .tickFormat(function (d) {
+
+                return moment(d).format('DD/MMM/YY')
+            });
+
+        var yAxis = d3.axisLeft(yScale).ticks(5);
+
+        refund_svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", `translate(0, ${height - margin})`)
+            .call(xAxis);
+
+        refund_svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis)
+            .append('text')
+            .attr("y", 15)
+            .attr("transform", "rotate(-90)")
+            .attr("fill", "#000")
+            .text("Valor do reembolso");
 
     })
 
@@ -293,7 +396,8 @@ function apply_congressperson_filter(congressperson_id) {
                     .style("opacity", .9);
                 tooltip.html("Período: " + period
                     + "<br/>" + "Média de gasto diário no período: " + mean
-                )
+                ).style("z-index", 100)
+                    .style("background", "#f8f8f8")
                     .style("left", (d3.event.pageX - 60) + "px")
                     .style("top", (d3.event.pageY - 150) + "px");
 
@@ -342,9 +446,10 @@ function apply_congressperson_filter(congressperson_id) {
                     + "<br/>" + "Retweets (Twitter): " + retweets
                     + "<br/>" + "Valor do Reembolso: " + price
                     + "<br/>" + "Motivo da Suspeita: " + suspicions
-                )
+                ).style("z-index", 100)
+                    .style("background", "#f8f8f8")
                     .style("left", (d3.event.pageX - 60) + "px")
-                    .style("top", (d3.event.pageY - 150) + "px");
+                    .style("top", (d3.event.pageY - 170) + "px");
 
             })
             .on("click", function (d) {

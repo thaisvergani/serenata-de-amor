@@ -7,7 +7,7 @@
 
     <title>Dataviz</title>
     <script src="https://d3js.org/d3.v4.min.js"></script>
-    <script src="{% static 'js/lib/moment.min.js' %}"  async></script>
+    <script src="{% static 'js/lib/moment.min.js' %}" async></script>
     <script src="{% static 'js/lib/moment-with-locales.min.js' %}" async></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
@@ -27,71 +27,132 @@
         <div class="centered top-text">
             <h1>Dataviz</h1>
 
-            <h5 class="centered">O impacto do controle social na Câmara dos Deputados.</h5>
-            <p class="al-left">Como os Tweets feitos pela
-                <a href="https://twitter.com/RosieDaSerenata">@RosieDaSerenata</a>
-                podem impactar os gastos dos parlamentares?</p>
         </div>
     </div>
 
     <div class="column ">
 
-        <div  class="filter">
+        <div class="filter">
+                <span class="filter-label">
+                    Ano:
+
+                </span>
+
+            <select id="year"
+                    class="chosen-select dataviz-select"
+                    style="    width: 600px;"
+                    data-url="{% url 'dataviz:congressperson_info' %}">
+
+                {% for y in years %}
+                <option value="{{y}}">
+                    {{y}}
+                </option>
+                {% endfor %}
+            </select>
+
+        </div>
+
+    </div>
+    <br/>
+
+    <div class="box-content chart" style="    background-color: #f8f8f8;">
+        <div class="column ">
+
+            <h5>O impacto do controle social na Câmara dos Deputados.</h5>
+
+            <p>
+                Acompanhe os Tweets feitos pela <a href="https://twitter.com/RosieDaSerenata">@RosieDaSerenata</a>.
+                Cada ponto no gráfico representa um reembolso suspeito publicado no Twitter e os pontos em verde são
+                reembolsos que foram devolvidos para a Câmera.
+
+            </p>
+        </div>
+        <div class="column" id="refund_chart">
+            <br/>
+            <br/>
+
+        </div>
+
+    </div>
+
+    <div class="box-content" style="    margin-top: 50px; margin-bottom:20px">
+
+
+        <div class="filter">
                 <span class="filter-label">
                     Parlamentar:
 
                 </span>
 
-                <select id="congressperson"
-                        class="chosen-select dataviz-select"
-                        style="    width: 600px;"
-                        data-url="{% url 'dataviz:congressperson_info' %}">
-                       <option value="" ></option>
+            <select id="congressperson"
+                    class="chosen-select dataviz-select"
+                    style="  width: 600px;"
+                    data-url="{% url 'dataviz:congressperson_info' %}">
+                <option value=""></option>
 
-                    {% for c in congressperson_list %}
-                    <option value="{{c.id}}">
-                        {{c.nome|title}} - {{c.siglaPartido}}
-                    </option>
-                    {% endfor %}
-                </select>
-
-        </div>
-
-        <div  class="filter ">
-                <span class="filter-label">
-                    Legislatura:
-
-                </span>
-
-                <select id="legislatures-select"
-                        class="chosen-select dataviz-select"
-                        style="    width: 600px;">
-                       <option value="" ></option>
-
-                    {% for l in legislaturas %}
-                    <option value="{{l.id}}">
-                        {{l.dataInicio }} - {{l.dataFim|date }}
-                    </option>
-                    {% endfor %}
-                </select>
+                {% for c in congressperson_list %}
+                <option value="{{c.id}}">
+                    {{c.nome|title}} - {{c.siglaPartido}}
+                </option>
+                {% endfor %}
+            </select>
 
         </div>
+        <div class="column " style="    margin-top: 0px; margin-bottom:20px">
 
         <div class="congressperson-info" id="congressperson-info">
+                 <br/>
+            <br/>
+         <br/>
+            <br/>
+
+        </div>
         </div>
     </div>
-</div>
-<div class="box-content chart">
-    <div class="column" id="refund_chart"></div>
-    <div class="column" id="tweet_chart"></div>
-    <div class="column" id="reimbursements_chart"></div>
-</div>
+
+    <div class="box-content chart" style="  background-color: #f8f8f8;">
+        <div class="column ">
+            <h5>Média de Gastos ao longo do tempo</h5>
+
+            <p>
+
+                Na visualização, os tweets estão identificados pelos pontos.
+                Entenda qual é impacto das publicações na média de gastos do parlamentar.
+            </p>
+        </div>
+        <div class="column" id="tweet_chart">
+            Selecione um parlamentar para visualizar o gráfico de Tweets.
+        </div>
+        <div class="column ">
+            <h5>Distribuição dos Reembolsos</h5>
+
+            <p>
+                Entenda qual a frequência e quais os valores dos reembolsos feitos pelo parlamentar.
+                Alguns pontos estão destacados para representar os tweets que foram feitos pela Rosie.
+            </p>
+        </div>
+
+        <div class="column" id="reimbursements_chart">
+            Selecione um parlamentar para carregar a visualização de reembolsos.
+
+        </div>
+    </div>
 
 
-<input type="hidden"
-       id="twitter-data-url"
-       data-url-tweets="{% url 'dataviz:tweet_chart' %}"
-       data-url-refund="{% url 'dataviz:refund_chart' %}"
-/>
+    <input type="hidden"
+           id="twitter-data-url"
+           data-url-tweets="{% url 'dataviz:tweet_chart' %}"
+           data-url-refund="{% url 'dataviz:refund_chart' %}"/>
+
+    <div class="box-content " style="    margin-top: 50px; margin-bottom:10px">
+        <div class="column">
+            <p>Para mais visualizaçõe dos gastos parlamentares acesse o site da
+                <a target="_blank"
+                   href="https://www.camara.leg.br/transparencia/gastos-parlamentares">
+                    Câmara de Deputados
+                </a>
+            </p>
+        </div>
+    </div>
 </body>
 </html>

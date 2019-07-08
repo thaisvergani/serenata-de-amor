@@ -22,32 +22,55 @@ def refund_chart(request):
                                                              )))
 
     reimbursements = Reimbursement.objects.filter(
-        id__in=df_tweets['reimbursement'].tolist()
+        id__in=df_tweets['reimbursement'].tolist(),
+        year__gte=2014,
+        subquota_number = 13
     )
 
     df_tweeted_reimbursements = pd.DataFrame(list(reimbursements.values('id',
-                                                                         'congressperson_name',
-                                                                         'party',
+                                                                        'congressperson_name',
+                                                                        'party',
                                                                         'total_value',
+                                                                        'suspicions',
                                                                         'total_net_value'
-                                                                         )))
+                                                                        )))
     df_tweeted_reimbursements['reimbursement_id'] = df_tweeted_reimbursements['id']
+    df_tweeted_reimbursements['suspicions'] = df_tweeted_reimbursements['suspicions'].apply(
+        lambda x: get_suspicion_description(x))
 
-    df_tweeted_reimbursements = pd.merge(df_tweets,
-                         df_tweeted_reimbursements,
-                         left_on='reimbursement',
-                         right_on='reimbursement_id',
-                         how='left')
+    df_tweeted_reimbursements = pd.merge(
+        df_tweeted_reimbursements,
+        df_tweets,
+        left_on='reimbursement_id',
+        right_on='reimbursement',
+        how='left')
 
+    df_api_twitter = get_twitter_data(df_tweeted_reimbursements['status'].astype(str).tolist())
+    df_api_twitter = df_api_twitter[['created_at', 'favorite_count', 'id', 'id_str', 'retweet_count']]
 
-    df_api_twitter = get_twitter_data(df_tweeted_reimbursements['status'].tolist())
-    df_tweeted_reimbursements= pd.merge(df_tweeted_reimbursements,
-                         df_api_twitter,
-                         left_on='status',
-                         right_on='id',
-                         how='left')
+    df_tweeted_reimbursements = pd.merge(df_tweeted_reimbursements,
+                                         df_api_twitter,
+                                         left_on='status',
+                                         right_on='id',
+                                         how='left')
+    df_tweeted_reimbursements['created_at'] = pd.to_datetime(
+        df_tweeted_reimbursements['created_at'])
+    df_tweeted_reimbursements = df_tweeted_reimbursements[df_tweeted_reimbursements['created_at'] > '2014-01-01 ']
+
+    df_tweeted_reimbursements['status'] = df_tweeted_reimbursements['status'].astype(str)
     df_tweeted_reimbursements = df_tweeted_reimbursements.fillna(0)
     d = df_tweeted_reimbursements.to_dict('records')
+    # from IPython import embed; embed()
+    # first_tweet = df_tweeted_reimbursements['issue_date'].min()
+    # refunds = Reimbursement.objects.filter(
+    #     issue_date__gte=first_tweet,
+    #     total_value__gt=0,
+    # )
+    # refunds_tweeted = Reimbursement.objects.filter(
+    #     id__in=df_tweets['reimbursement'].tolist(),
+    #     issue_date__gte=first_tweet,
+    #     total_value__gt=0,
+    # )
 
     return HttpResponse(
         json.dumps(d, cls=DatavizEncoder)
@@ -70,7 +93,7 @@ def dataviz_dashboard(request):
             break
         congressperson_list.extend(congressperson_page)
         page = page + 1
-
+    # from IPython import embed; embed()
     legislaturas_url = "https://dadosabertos.camara.leg.br/api/v2/legislaturas"
     response = requests.get(url=legislaturas_url,
                             params={'itens': 5,
@@ -86,7 +109,8 @@ def dataviz_dashboard(request):
     return render(request=request,
                   template_name="dashboard.html",
                   context={'congressperson_list': congressperson_list,
-                           'legislaturas': legislaturas}
+                           'legislaturas': legislaturas,
+                           'years': range(2017,2020)}
                   )
 
 
@@ -124,8 +148,8 @@ def get_congressperson_reimbursements(congressperson_id, subquota_number, year=N
                                                    'document_id',
                                                    'congressperson_name',
                                                    'congressperson_id']]
-    # remove outliers
-    df_all_reimbursements = outliers(df_all_reimbursements)
+    # # remove outliers
+    # df_all_reimbursements = outliers(df_all_reimbursements)
 
     return df_all_reimbursements
 
@@ -141,6 +165,7 @@ def outliers(df, level=10):
 
     return df
 
+
 def get_twitter_data(status_ids):
     api = twitter.Api(consumer_key='7VaADONcHBiai9TS8YJ05mcTe',
                       consumer_secret='C58ej1UQF5tg0hd7y54m31CuOUMMFuQoIiGfxc6VnGvNgeJYj6',
@@ -153,12 +178,10 @@ def get_twitter_data(status_ids):
     #     count=200,  # this is the maximum suported by Twitter API
     #     include_rts=False,
     #     exclude_replies=True)
-    tweets = api.GetStatuses(
-        status_ids=status_ids)
+    tweets = api.GetStatuses(trim_user=True, include_entities=False, status_ids=status_ids)
 
-    tweets = [t.AsDict() for t in tweets]
-
-    df_tweets = pd.DataFrame(tweets)
+    variables = ['created_at', 'favorite_count', 'id', 'id_str', 'retweet_count']
+    df_tweets = pd.DataFrame([[getattr(i, j) for j in variables] for i in tweets], columns=variables)
     return df_tweets
 
 
@@ -205,8 +228,7 @@ def tweet_chart(request):
     # periods = pd.date_range(period_ini, period_end, freq='MS').tolist()
 
     df_all_reimbursements = df_all_reimbursements.set_index('issue_date')
-    periods = df_all_reimbursements.groupby(pd.Grouper(freq="M"))
-
+    periods = df_all_reimbursements.groupby(pd.Grouper(freq="Q"))
     means = periods['value'].mean()
     means = means.to_frame().reset_index()
     means = means.fillna(0)
